@@ -11,6 +11,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
 
+import com.example.asus.kojewang.ContactGroup;
+import com.example.asus.kojewang.ContactPerson;
 import com.example.asus.kojewang.MainActivity;
 import com.example.asus.kojewang.R;
 
@@ -41,8 +43,15 @@ public class adressFragment extends Fragment {
         lv.setAdapter(adapter);
         return  view;
     }
-    public void addList(List<String> contactsList){
+    public void addList(ArrayList<ContactGroup> contactGroups){
         ContactsList.clear();
+        ArrayList<String> contactsList = new ArrayList<String>();
+        for(ContactGroup item : contactGroups){
+            contactsList.add(item.getGroupName());
+            for(ContactPerson itemcp : item.getPersonList()){
+                contactsList.add(itemcp.getName()+"\n" + itemcp.getNum() );
+            }
+        }
         ContactsList.addAll(contactsList);
         reflash();
     }

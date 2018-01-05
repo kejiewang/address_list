@@ -3,6 +3,8 @@ package com.example.asus.kojewang;
 import android.content.ContentProviderOperation;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
+import android.graphics.LinearGradient;
+import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
@@ -17,6 +19,8 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.EventLog;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,6 +28,8 @@ import android.widget.Toast;
 
 import com.example.asus.kojewang.fragement.adressFragment;
 
+import java.security.acl.Group;
+import java.security.spec.EllipticCurve;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
@@ -133,53 +139,82 @@ public class MainActivity extends AppCompatActivity {
                drawer.openDrawer(GravityCompat.START);
                break;
            case R.id.getContacts:
-              // adressFragment adressfragment =getSupportFragmentManager().findFragmentById(R.id.);
                aF.addList(GetSysContacts());
                break;
        }
         return  true;
     }
 
-    private ArrayList<String> GetSysContacts() {//试验代码
-        ArrayList<String> temp =  new ArrayList<String>();
-//        Cursor cursor = null;
-//        cursor = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, null);
-//        if(cursor != null){
-//            while(cursor.moveToNext()) {
-//                String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-//                String number = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-//                String group = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.GroupMembership.DISPLAY_NAME));
-//                temp.add(name + '\n' +number+ '\n'+group);
-//            }
-//
-//        }
-        Cursor cursor = null;
+    private ArrayList<ContactGroup> GetSysContacts() {//试验代码
+        ArrayList<ContactGroup> temp = new ArrayList<ContactGroup>();
+        Cursor cursor = getContentResolver().query(ContactsContract.Groups.CONTENT_URI, null, null, null, null);
+        while(cursor.moveToNext()){
+            String name = cursor.getString(cursor.getColumnIndex(ContactsContract.Groups.TITLE));
+            long id = cursor.getLong(cursor.getColumnIndex(ContactsContract.Groups._ID));
+            ContactGroup cg = new ContactGroup(name ,id);
 
+            //查询分组下面的所有联系人
+            String[] RAW_PROJECTION = new String[] { ContactsContract.Data.RAW_CONTACT_ID, };
+            String RAW_CONTACTS_WHERE = ContactsContract.CommonDataKinds.GroupMembership.GROUP_ROW_ID + "=?"+ " and "+ ContactsContract.Data.MIMETYPE
+                    + "=" + "'" + ContactsContract.CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE + "'";
+            // 通过分组的id 查询得到RAW_CONTACT_ID
 
-        try {
+            Cursor cursor2 = getContentResolver().query(
 
-            cursor = getContentResolver().query(ContactsContract.Groups.CONTENT_URI,null, null, null, null);
-            while (cursor.moveToNext()) {
-                //GroupEntity ge = new GroupEntity();
-                int groupId = cursor.getInt(cursor.getColumnIndex(ContactsContract.Groups._ID)); // 组id
-                String groupName = cursor.getString(cursor.getColumnIndex(ContactsContract.Groups.TITLE)); // 组名
-                temp.add(""+groupId + "\n"+groupName);
+                    ContactsContract.Data.CONTENT_URI, RAW_PROJECTION,
+
+                    RAW_CONTACTS_WHERE, new String[] { id + "" }, "data1 asc");
+
+            ArrayList<ContactPerson> contactList = new ArrayList<ContactPerson>();
+            while(cursor2.moveToNext()){
+                int col = cursor2.getColumnIndex(ContactsContract.Data.RAW_CONTACT_ID);
+                long raw_contact_id = cursor2.getLong(col);
+                ContactPerson cp  = new ContactPerson();
+                cp.setPersonId(raw_contact_id);
+                Uri dataUri = Uri.parse("content://com.android.contacts/data");
+                Cursor dataCursor = getContentResolver().query(dataUri,null, "raw_contact_id=?",new String[] { raw_contact_id + "" }, null);
+                while (dataCursor.moveToNext()) {   //设置name
+                    String data1 = dataCursor.getString(dataCursor.getColumnIndex("data1"));
+                    String mime = dataCursor.getString(dataCursor.getColumnIndex("mimetype"));
+                    if ("vnd.android.cursor.item/phone_v2".equals(mime)) {
+                        cp.setNum(data1);
+                    } else if ("vnd.android.cursor.item/name".equals(mime)) {
+                        cp.setName(data1);
+                    }else if("vnd.android.cursor.item/group_membership".equals(mime)){
+                        cp.setGroup(data1);
+                    }
+                }
+                contactList.add(cp);
+                dataCursor.close();
             }
-            return temp;
-            //return groupList;
-
-
-        } finally {
-
-            if (cursor != null) {
-
-                cursor.close();
-
+            cursor2.close();
+            cg.setPersonList(contactList);
+            temp.add(cg);
+        }
+        cursor.close();
+        //cursor = getContentResolver().query(ContactsContract.Data.CONTENT_URI,)
+        //查询所有的联系人
+        ContactGroup cg = new  ContactGroup("系统全部",-1);
+        ArrayList<ContactPerson> al = new ArrayList<ContactPerson>();
+        cursor = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,null,null,null,null);
+        if(cursor!= null){
+            while(cursor.moveToNext()){
+                String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                long id = cursor.getLong(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.RAW_CONTACT_ID));
+                String num = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                String group = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.IN_VISIBLE_GROUP));
+                ContactPerson cp = new ContactPerson();
+                cp.setName(name);
+                cp.setNum(num);
+                cp.setPersonId(id);
+                cp.setGroup(group);
+                al.add(cp);
             }
+        }
+        cg.setPersonList(al);
+        temp.add(cg);
 
-
-        //return temp;
+        return temp;
     }
-}
 
 }
