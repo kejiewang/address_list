@@ -4,10 +4,14 @@
         <item
             android:id="@+id/nav_get"
             android:icon="@drawable/ic_menu_camera"
-            android:title="获取通讯录"/>
+            android:title="本地文件"/>
         <item
             android:id="@+id/nav_set"
             android:icon="@drawable/ic_menu_gallery"
-            android:title="导入通讯录"/>
+            android:title="通讯录列表"/>
+        <item
+            android:id="@+id/nav_group"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="群组列表"></item>
     </group>
 </menu>

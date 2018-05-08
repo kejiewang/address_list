@@ -2,5 +2,19 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/getContacts"
-        android:title="获取通讯录"></item>
+        android:title="获取系统通讯录"></item>
+    <item
+         android:id="@+id/setContacts"
+         android:title="更新到系统通讯录"></item>
+    <item
+        android:id="@+id/getFilePath"
+        android:title="导出到文件"></item>
+    <item
+        android:id="@+id/pushToFile"
+        android:title="导入从文件"></item>
+    <item
+        android:id="@+id/getFromSms"
+        android:title="导入从短信"></item>
+    <item android:id="@+id/reset"
+        android:title="重置数据"></item>
 </menu>
